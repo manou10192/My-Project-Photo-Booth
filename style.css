@@ -1,0 +1,67 @@
+/* Prevent unwanted rubber-band bouncing and optimize for mobile web app feel */
+html,
+body {
+  height: 100%;
+  height: 100dvh;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+/* Safe Area insets for iPhone notched screens & Android dynamic bars */
+.pt-safe {
+  padding-top: max(12px, env(safe-area-inset-top));
+}
+.pb-safe {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+/* Custom CSS filters applied dynamically to preview and rendered onto canvas */
+.filter-normal {
+  filter: none;
+}
+.filter-bw {
+  filter: grayscale(100%) contrast(118%) brightness(104%);
+}
+.filter-sepia {
+  filter: sepia(60%) saturate(135%) contrast(98%);
+}
+.filter-glow {
+  filter: brightness(110%) contrast(92%) saturate(125%)
+    drop-shadow(0 0 4px rgba(255, 182, 193, 0.3));
+}
+.filter-warm {
+  filter: sepia(22%) contrast(112%) saturate(130%) hue-rotate(-8deg);
+}
+.filter-cyber {
+  filter: contrast(130%) saturate(160%) hue-rotate(185deg);
+}
+.filter-y2k {
+  filter: contrast(115%) brightness(115%) saturate(145%) hue-rotate(15deg);
+}
+
+/* Viewfinder rule-of-thirds grid */
+.grid-viewfinder {
+  background-size: 33.333% 33.333%;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.2) 1px, transparent 1px);
+}
+
+/* Sticker styling and touch interactions */
+.touch-sticker {
+  touch-action: none;
+  cursor: grab;
+}
+.touch-sticker:active {
+  cursor: grabbing;
+}
+
+/* Smooth scroll for horizontal swiping trays */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

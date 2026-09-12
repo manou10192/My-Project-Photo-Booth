@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="style.css" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>AuraBooth - Mobile Korean Photo Studio</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- jsPDF for High Quality PDF Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"Plus Jakarta Sans"', "sans-serif"],
+              mono: ['"Space Grotesk"', "monospace"],
+              hand: ['"Caveat"', "cursive"],
+            },
+            colors: {
+              brand: {
+                50: "#fff1f2",
+                100: "#ffe4e6",
+                200: "#fecdd3",
+                400: "#fb7185",
+                500: "#f43f5e",
+                600: "#e11d48",
+                900: "#881337",
+                dark: "#161418",
+              },
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+
+  <body
+    class="bg-[#F8F6F2] text-[#242124] flex flex-col h-full overflow-hidden antialiased"
+  >
+    <!-- Global Top Header Bar (Safe on Mobile & Clean on Desktop) -->
+    <header
+      class="pt-safe px-4 pb-2.5 bg-white/80 backdrop-blur-md border-b border-stone-200/80 shrink-0 z-30"
+    >
+      <div class="max-w-4xl mx-auto flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div
+            class="w-8 h-8 rounded-xl bg-gradient-to-tr from-rose-500 to-amber-300 flex items-center justify-center text-white shadow-sm shadow-rose-200"
+          >
+            <i data-lucide="camera" class="w-4 h-4 stroke-[2.5]"></i>
+          </div>
+          <div>
+            <h1
+              class="font-extrabold text-sm sm:text-base tracking-tight flex items-center gap-1.5 text-stone-900"
+            >
+              Meow Meow<span
+                class="text-[10px] font-bold tracking-widest text-rose-600 bg-rose-50 border border-rose-200/60 px-1.5 py-0.5 rounded-full uppercase"
+                >Photo Booth</span
+              >
+            </h1>
+          </div>
+        </div>
+
+        <!-- Live Step Pill Indicator -->
+        <div
+          class="flex items-center gap-1 bg-stone-100 p-1 rounded-full text-xs font-semibold text-stone-500 border border-stone-200"
+        >
+          <button
+            id="step-btn-1"
+            class="step-nav-btn px-2.5 py-1 rounded-full bg-white text-stone-900 shadow-sm transition"
+          >
+            1. Shoot
+          </button>
+          <button
+            id="step-btn-2"
+            class="step-nav-btn px-2.5 py-1 rounded-full transition"
+          >
+            2. Style
+          </button>
+          <button
+            id="step-btn-3"
+            class="step-nav-btn px-2.5 py-1 rounded-full transition"
+          >
+            3. Print
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main
+      class="flex-1 max-w-4xl w-full mx-auto relative overflow-hidden flex flex-col"
+    >
+      <!-- =========================================================================
+         VIEW 1: CAMERA VIEWFINDER & LIVE CAPTURE (Optimized for one-handed mobile)
+         ========================================================================= -->
+      <div
+        id="view-camera"
+        class="step-view flex-1 flex flex-col p-3 sm:p-5 overflow-y-auto no-scrollbar pb-24"
+      >
+        <!-- Camera Screen Box -->
+        <div
+          class="relative w-full max-w-md mx-auto aspect-[3/4] sm:aspect-[4/3] rounded-3xl bg-stone-950 overflow-hidden shadow-xl border border-stone-800 flex items-center justify-center"
+        >
+          <!-- Live Video Element -->
+          <video
+            id="webcam-video"
+            autoplay
+            playsinline
+            muted
+            class="w-full h-full object-cover -scale-x-100 transition-transform duration-200"
+          ></video>
+
+          <!-- Flash Light Overlay -->
+          <div
+            id="camera-flash"
+            class="absolute inset-0 bg-white pointer-events-none opacity-0 z-30 transition-opacity duration-150"
+          ></div>
+
+          <!-- Viewfinder Rule of Thirds Lines -->
+          <div
+            id="viewfinder-grid"
+            class="absolute inset-0 grid-viewfinder pointer-events-none opacity-40"
+          ></div>
+
+          <!-- Big Countdown Number -->
+          <div
+            id="countdown-wrap"
+            class="absolute inset-0 flex items-center justify-center z-20 pointer-events-none hidden"
+          >
+            <span
+              id="countdown-num"
+              class="text-white font-extrabold text-8xl drop-shadow-[0_4px_30px_rgba(0,0,0,0.9)] animate-pulse"
+              >3</span
+            >
+          </div>
+
+          <!-- Top Floating Controls on Video -->
+          <div
+            class="absolute top-3 inset-x-3 flex items-center justify-between z-20 pointer-events-auto"
+          >
+            <!-- Shot Status Indicator -->
+            <div
+              class="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-semibold text-white flex items-center gap-1.5 border border-white/10"
+            >
+              <span
+                class="w-2 h-2 rounded-full bg-rose-400 animate-pulse"
+              ></span>
+              Shot
+              <span id="camera-slot-counter" class="text-rose-300 font-bold"
+                >1</span
+              >
+              / <span id="camera-slot-total">4</span>
+            </div>
+
+            <!-- Quick Actions: Flip camera & Mirror -->
+            <div
+              class="flex items-center gap-1.5 bg-black/60 backdrop-blur-md p-1 rounded-2xl border border-white/10"
+            >
+              <button
+                id="camera-flip-btn"
+                title="Flip Rear/Front Camera"
+                class="w-8 h-8 rounded-xl flex items-center justify-center text-white/90 active:scale-90 hover:bg-white/20 transition"
+              >
+                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+              </button>
+              <button
+                id="camera-mirror-btn"
+                title="Toggle Mirror"
+                class="w-8 h-8 rounded-xl flex items-center justify-center text-white/90 active:scale-90 hover:bg-white/20 transition"
+              >
+                <i data-lucide="flip-horizontal" class="w-4 h-4"></i>
+              </button>
+              <button
+                id="camera-grid-btn"
+                title="Toggle Grid"
+                class="w-8 h-8 rounded-xl flex items-center justify-center text-white/90 active:scale-90 hover:bg-white/20 transition"
+              >
+                <i data-lucide="grid" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Fallback if camera is blocked/denied -->
+          <div
+            id="camera-blocked-fallback"
+            class="absolute inset-0 bg-stone-900/95 flex flex-col items-center justify-center p-6 text-center text-stone-200 z-30 hidden"
+          >
+            <i
+              data-lucide="camera-off"
+              class="w-12 h-12 text-rose-400 mb-3"
+            ></i>
+            <p class="font-bold text-sm">Camera Not Accessible</p>
+            <p class="text-xs text-stone-400 mt-1 max-w-xs">
+              Grant camera permissions or load our aesthetic model photos to
+              play right away.
+            </p>
+            <div class="flex gap-2 mt-4">
+              <button
+                id="fallback-retry-cam"
+                class="px-4 py-2 text-xs bg-rose-500 font-bold rounded-xl text-white shadow active:scale-95 transition"
+              >
+                Retry Cam
+              </button>
+              <button
+                id="fallback-sample-btn"
+                class="px-4 py-2 text-xs bg-stone-700 font-bold rounded-xl text-white active:scale-95 transition"
+              >
+                Sample Photos
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Shutter Station & Timer Options Bar -->
+        <div class="max-w-md mx-auto w-full mt-3 flex flex-col gap-3">
+          <!-- Mode, Timer & Burst Controls -->
+          <div
+            class="flex items-center justify-between bg-white px-3 py-2 rounded-2xl border border-stone-200/80 shadow-sm text-xs font-semibold text-stone-600"
+          >
+            <!-- Timer pills -->
+            <div class="flex items-center gap-1.5">
+              <span class="text-stone-400 flex items-center gap-1"
+                ><i data-lucide="timer" class="w-3.5 h-3.5"></i> Timer:</span
+              >
+              <button
+                data-time="3"
+                class="timer-tag px-2.5 py-1 rounded-xl bg-stone-900 text-white shadow-xs transition"
+              >
+                3s
+              </button>
+              <button
+                data-time="5"
+                class="timer-tag px-2.5 py-1 rounded-xl text-stone-500 hover:text-stone-900 transition"
+              >
+                5s
+              </button>
+              <button
+                data-time="10"
+                class="timer-tag px-2.5 py-1 rounded-xl text-stone-500 hover:text-stone-900 transition"
+              >
+                10s
+              </button>
+            </div>
+
+            <!-- Burst switch -->
+            <label
+              class="flex items-center gap-1.5 cursor-pointer text-stone-700"
+            >
+              <input
+                type="checkbox"
+                id="burst-toggle"
+                class="accent-rose-500 w-4 h-4 rounded cursor-pointer"
+                checked
+              />
+              <span>Auto 4-Burst</span>
+            </label>
+          </div>
+
+          <!-- Big Mobile Touch-Friendly Shutter Row -->
+          <div class="flex items-center justify-between gap-3 px-2">
+            <!-- Retake / Reset All -->
+            <button
+              id="reset-shots-btn"
+              class="w-12 h-12 rounded-2xl bg-white border border-stone-200 text-stone-600 flex items-center justify-center active:scale-90 hover:bg-stone-50 shadow-sm transition"
+              title="Clear all photos"
+            >
+              <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+            </button>
+
+            <!-- Master Shutter Button with Pulsing Ring -->
+            <button
+              id="main-shutter-btn"
+              class="flex-1 max-w-xs h-14 bg-gradient-to-r from-rose-500 via-pink-500 to-rose-400 text-white font-extrabold rounded-2xl shadow-lg shadow-rose-200 active:scale-95 transition flex items-center justify-center gap-2 text-base"
+            >
+              <div
+                class="w-4 h-4 rounded-full border-2 border-white flex items-center justify-center"
+              >
+                <div class="w-2 h-2 rounded-full bg-white"></div>
+              </div>
+              <span id="shutter-btn-label">Capture Shot</span>
+            </button>
+
+            <!-- Jump straight to style -->
+            <button
+              id="quick-to-style-btn"
+              class="w-12 h-12 rounded-2xl bg-stone-900 text-white flex items-center justify-center active:scale-90 shadow-sm transition"
+              title="Proceed to Style"
+            >
+              <i data-lucide="arrow-right" class="w-5 h-5"></i>
+            </button>
+          </div>
+
+          <!-- Captured 4 slots progress thumbnail cards -->
+          <div class="flex items-center justify-between gap-2 mt-1">
+            <div
+              class="grid grid-cols-4 gap-2 flex-1"
+              id="camera-slot-previews"
+            >
+              <!-- Dynamically populated 4 slots -->
+            </div>
+          </div>
+
+          <!-- Filters horizontal sliding carousel -->
+          <div class="mt-1">
+            <div
+              class="text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-1.5 flex items-center justify-between"
+            >
+              <span>Color Preset Tint</span>
+              <button
+                id="sample-demo-btn"
+                class="text-rose-500 lowercase underline text-[11px]"
+              >
+                use demo photos
+              </button>
+            </div>
+            <div
+              class="flex gap-1.5 overflow-x-auto no-scrollbar pb-1"
+              id="filter-pills-row"
+            >
+              <!-- Populated in JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- =========================================================================
+         VIEW 2: CUSTOMIZE, STYLE & TOUCH STICKERS
+         ========================================================================= -->
+      <div
+        id="view-style"
+        class="step-view flex-1 flex flex-col md:flex-row gap-4 p-3 sm:p-5 overflow-y-auto no-scrollbar pb-24 hidden"
+      >
+        <!-- Interactive Visual Strip Canvas Preview Area -->
+        <div
+          class="flex-1 flex flex-col items-center justify-center bg-stone-200/70 rounded-3xl p-3 sm:p-5 relative border border-stone-200 min-h-[380px]"
+        >
+          <!-- Action Badges -->
+          <div class="w-full flex items-center justify-between mb-2">
+            <span
+              class="text-xs font-bold text-stone-600 bg-white/90 backdrop-blur px-2.5 py-1 rounded-xl shadow-xs flex items-center gap-1"
+            >
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-rose-500"></i>
+              Tap canvas to stamp sticker
+            </span>
+            <button
+              id="clear-all-stickers"
+              class="text-xs font-semibold px-2.5 py-1 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 active:scale-95 transition"
+            >
+              Clear Stickers
+            </button>
+          </div>
+
+          <!-- Rendered HTML5 Strip Canvas -->
+          <div
+            class="relative shadow-2xl rounded-sm transition-all max-w-full overflow-hidden flex items-center justify-center"
+          >
+            <canvas
+              id="booth-canvas"
+              class="max-h-[58vh] sm:max-h-[64vh] w-auto object-contain cursor-crosshair rounded-sm"
+            ></canvas>
+          </div>
+          <p class="text-[11px] text-stone-500 mt-2 text-center">
+            Touch any sticker in the tray below to stamp it right onto your
+            photo!
+          </p>
+        </div>
+
+        <!-- Frame & Style Setting Toolbox Drawer -->
+        <div
+          class="w-full md:w-80 bg-white rounded-3xl p-4 border border-stone-200/80 shadow-sm flex flex-col gap-4"
+        >
+          <!-- 1. Layout Mode Switcher -->
+          <div>
+            <span
+              class="text-[11px] font-bold text-stone-400 uppercase tracking-wider block mb-1.5"
+              >1. Layout Style</span
+            >
+            <div
+              class="grid grid-cols-3 gap-1 bg-stone-100 p-1 rounded-2xl text-xs font-bold"
+            >
+              <button
+                data-layout="4cut"
+                class="layout-toggle py-2 rounded-xl bg-white text-stone-900 shadow-xs transition"
+              >
+                4-Cut Strip
+              </button>
+              <button
+                data-layout="2x2"
+                class="layout-toggle py-2 rounded-xl text-stone-500 hover:text-stone-900 transition"
+              >
+                2x2 Grid
+              </button>
+              <button
+                data-layout="polaroid"
+                class="layout-toggle py-2 rounded-xl text-stone-500 hover:text-stone-900 transition"
+              >
+                Polaroid
+              </button>
+            </div>
+          </div>
+
+          <!-- 2. Frame Theme Color Selection -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <span
+                class="text-[11px] font-bold text-stone-400 uppercase tracking-wider"
+                >2. Frame Color</span
+              >
+              <span
+                id="label-color-name"
+                class="text-xs font-bold text-stone-600"
+                >Snow White</span
+              >
+            </div>
+            <div
+              class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1"
+            >
+              <button
+                data-hex="#FFFFFF"
+                data-cname="Snow White"
+                class="frame-color-dot w-7 h-7 shrink-0 rounded-full bg-white border-2 border-stone-300 ring-2 ring-rose-400 shadow-xs"
+              ></button>
+              <button
+                data-hex="#18181B"
+                data-cname="Charcoal Noir"
+                class="frame-color-dot w-7 h-7 shrink-0 rounded-full bg-[#18181B] border border-stone-400 shadow-xs"
+              ></button>
+              <button
+                data-hex="#FFE4E8"
+                data-cname="Blush Pink"
+                class="frame-color-dot w-7 h-7 shrink-0 rounded-full bg-[#FFE4E8] border border-stone-200 shadow-xs"
+              ></button>
+              <button
+                data-hex="#FFF8E7"
+                data-cname="Warm Cream"
+                class="frame-color-dot w-7 h-7 shrink-0 rounded-full bg-[#FFF8E7] border border-stone-300 shadow-xs"
+              ></button>
+              <button
+                data-hex="#E9D5FF"
+                data-cname="Lilac Purple"
+                class="frame-color-dot w-7 h-7 shrink-0 rounded-full bg-[#E9D5FF] border border-stone-200 shadow-xs"
+              ></button>
+              <button
+                data-hex="#DCFCE7"
+                data-cname="Matcha Mint"
+                class="frame-color-dot w-7 h-7 shrink-0 rounded-full bg-[#DCFCE7] border border-stone-200 shadow-xs"
+              ></button>
+              <button
+                data-hex="#FEF08A"
+                data-cname="Buttercup"
+                class="frame-color-dot w-7 h-7 shrink-0 rounded-full bg-[#FEF08A] border border-stone-200 shadow-xs"
+              ></button>
+              <!-- Custom HTML Color Picker -->
+              <label
+                class="relative w-7 h-7 shrink-0 rounded-full border border-stone-300 overflow-hidden cursor-pointer bg-gradient-to-tr from-rose-400 to-amber-300 flex items-center justify-center"
+              >
+                <input
+                  type="color"
+                  id="frame-custom-picker"
+                  class="opacity-0 absolute inset-0 cursor-pointer"
+                />
+                <i
+                  data-lucide="plus"
+                  class="w-3.5 h-3.5 text-white pointer-events-none"
+                ></i>
+              </label>
+            </div>
+          </div>
+
+          <!-- 3. Corner curves & Film Grain -->
+          <div class="grid grid-cols-2 gap-2 text-xs font-semibold">
+            <label
+              class="flex items-center gap-2 p-2.5 rounded-2xl bg-stone-50 border border-stone-200 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                id="chk-round-corners"
+                class="accent-rose-500 rounded"
+                checked
+              />
+              <span>Round Photos</span>
+            </label>
+            <label
+              class="flex items-center gap-2 p-2.5 rounded-2xl bg-stone-50 border border-stone-200 cursor-pointer"
+            >
+              <input
+                type="checkbox"
+                id="chk-film-grain"
+                class="accent-rose-500 rounded"
+                checked
+              />
+              <span>Vintage Grain</span>
+            </label>
+          </div>
+
+          <!-- 4. Stamp Stickers Palette -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <span
+                class="text-[11px] font-bold text-stone-400 uppercase tracking-wider"
+                >3. Stickers</span
+              >
+              <span
+                id="active-sticker-preview"
+                class="text-[11px] font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md"
+                >Selected: 🎀</span
+              >
+            </div>
+            <div
+              class="grid grid-cols-7 gap-1 bg-stone-50 p-2 rounded-2xl border border-stone-200"
+              id="sticker-bank"
+            >
+              <!-- Stickers rendered via JS -->
+            </div>
+          </div>
+
+          <!-- 5. Caption & Date Footers -->
+          <div class="flex flex-col gap-2">
+            <span
+              class="text-[11px] font-bold text-stone-400 uppercase tracking-wider"
+              >4. Text & Date</span
+            >
+            <input
+              type="text"
+              id="caption-input"
+              value="AURA PHOTO STUDIO"
+              maxlength="26"
+              class="w-full text-xs px-3 py-2 bg-stone-50 rounded-xl border border-stone-200 focus:outline-none focus:border-rose-400 font-semibold"
+              placeholder="Caption title..."
+            />
+            <div class="flex gap-2">
+              <input
+                type="text"
+                id="date-input"
+                value=""
+                class="w-1/2 text-xs px-3 py-1.5 bg-stone-50 rounded-xl border border-stone-200 focus:outline-none focus:border-rose-400 font-mono"
+              />
+              <select
+                id="font-choice"
+                class="w-1/2 text-xs px-2 py-1.5 bg-stone-50 rounded-xl border border-stone-200 font-semibold text-stone-700"
+              >
+                <option value="sans">Modern Bold</option>
+                <option value="mono">Y2K Monospace</option>
+                <option value="hand">Handwritten</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- =========================================================================
+         VIEW 3: PRINT, SAVE IMAGE & PDF EXPORT
+         ========================================================================= -->
+      <div
+        id="view-export"
+        class="step-view flex-1 flex flex-col items-center justify-center p-4 sm:p-6 overflow-y-auto no-scrollbar pb-24 hidden"
+      >
+        <div
+          class="max-w-md w-full bg-white rounded-3xl p-5 border border-stone-200/80 shadow-lg flex flex-col items-center gap-4 text-center"
+        >
+          <div
+            class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shadow-xs"
+          >
+            <i data-lucide="printer" class="w-6 h-6 stroke-[2.2]"></i>
+          </div>
+
+          <div>
+            <h2 class="text-lg font-black text-stone-900 tracking-tight">
+              Your Photoshoot is Ready!
+            </h2>
+            <p class="text-xs text-stone-500 mt-0.5">
+              Export high-resolution printable PDF strips for photo paper or
+              save directly to your mobile camera roll.
+            </p>
+          </div>
+
+          <!-- Download Buttons -->
+          <div class="w-full flex flex-col gap-2.5 mt-2">
+            <!-- PDF Button -->
+            <button
+              id="export-pdf-action"
+              class="w-full py-3.5 px-4 bg-stone-900 hover:bg-black text-white font-extrabold text-sm rounded-2xl shadow-md active:scale-98 transition flex items-center justify-center gap-2"
+            >
+              <i data-lucide="file-down" class="w-4 h-4 text-rose-400"></i>
+              <span>Download Printable PDF Strip</span>
+            </button>
+
+            <!-- PNG Image Button -->
+            <button
+              id="export-png-action"
+              class="w-full py-3 px-4 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-2xl border border-rose-200 active:scale-98 transition flex items-center justify-center gap-2"
+            >
+              <i data-lucide="image-down" class="w-4 h-4"></i>
+              <span>Save to Camera Roll (PNG)</span>
+            </button>
+
+            <!-- Web Share API Button for mobile share sheet -->
+            <button
+              id="mobile-share-action"
+              class="w-full py-2.5 px-4 bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold text-xs rounded-xl active:scale-98 transition flex items-center justify-center gap-1.5"
+            >
+              <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+              <span>Share with Friends</span>
+            </button>
+          </div>
+
+          <!-- Retake Prompt -->
+          <button
+            id="restart-flow-btn"
+            class="text-xs font-bold text-stone-400 hover:text-stone-700 pt-2 transition flex items-center gap-1"
+          >
+            <i data-lucide="camera" class="w-3.5 h-3.5"></i> Start another
+            photoshoot
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Bottom Mobile Navigation Bar -->
+    <nav
+      class="pb-safe fixed bottom-0 inset-x-0 bg-white/90 backdrop-blur-lg border-t border-stone-200/80 z-40"
+    >
+      <div
+        class="max-w-md mx-auto px-6 py-2 grid grid-cols-3 gap-2 text-center"
+      >
+        <button
+          data-target="view-camera"
+          class="nav-tab-btn active flex flex-col items-center gap-1 py-1 text-rose-600 transition"
+        >
+          <i data-lucide="camera" class="w-5 h-5"></i>
+          <span class="text-[11px] font-bold">1. Shoot</span>
+        </button>
+
+        <button
+          data-target="view-style"
+          class="nav-tab-btn flex flex-col items-center gap-1 py-1 text-stone-400 hover:text-stone-700 transition"
+        >
+          <i data-lucide="palette" class="w-5 h-5"></i>
+          <span class="text-[11px] font-bold">2. Style</span>
+        </button>
+
+        <button
+          data-target="view-export"
+          class="nav-tab-btn flex flex-col items-center gap-1 py-1 text-stone-400 hover:text-stone-700 transition"
+        >
+          <i data-lucide="download" class="w-5 h-5"></i>
+          <span class="text-[11px] font-bold">3. Export</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- User Feedback Toast Notification -->
+    <div
+      id="app-toast"
+      class="fixed bottom-20 inset-x-0 mx-auto w-fit max-w-[85vw] px-4 py-2.5 rounded-2xl bg-stone-900 text-white text-xs font-semibold shadow-xl border border-stone-700 flex items-center gap-2 transform translate-y-10 opacity-0 pointer-events-none transition-all duration-200 z-50"
+    >
+      <i data-lucide="check" class="w-4 h-4 text-emerald-400"></i>
+      <span id="toast-text">Ready</span>
+    </div>
+    <script src="script.js"></script>
+  </body>
+</html>
